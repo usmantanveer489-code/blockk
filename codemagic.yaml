@@ -1,0 +1,11 @@
+scripts:
+  - name: Build iOS
+    script: |
+      flutter clean
+      rm -rf ios/Podfile ios/Podfile.lock ios/Pods ios/Runner.xcworkspace
+      flutter pub get
+      flutter precache --ios
+      cd ios
+      pod install --repo-update
+      cd ..
+      flutter build ios --debug --no-codesign
