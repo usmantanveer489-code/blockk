@@ -3,71 +3,37 @@ workflows:
     name: iOS Build Workflow
     environment:
       groups:
-        # Add environment variables here (e.g., app store connect API keys)
         - app_store_connect
       vars:
-        XCODE_WORKSPACE: "Runner.xcworkspace"
-        XCODE_SCHEME: "Runner"
-        BUNDLE_ID: "com.example.blockfoliox" # Update with your actual bundle ID
-      xcode: 15.2
+        BUNDLE_ID: "com.example.blockfoliox"
+      # Use a Flutter version that includes Dart 3.9.0+
+      flutter: "3.22.0"  # This version includes Dart 3.12.0
+      xcode: latest
       cocoapods: default
-    triggering:
-      events:
-        - push
-        - tag
-      branch_patterns:
-        - pattern: 'develop'
-          include: true
-          source: true
     scripts:
-      # Set up keychain for code signing
-      - name: Set up keychain
+      - name: Check Flutter version
         script: |
-          keychain initialize
+          flutter --version
+          dart --version
       
-      # Install Flutter dependencies
-      - name: Install dependencies
-        script: |
-          flutter packages get
-      
-      # Pre-build cleanup to ensure iOS files are properly generated
-      - name: Pre-build cleanup
+      - name: Clean and regenerate iOS project
         script: |
           flutter clean
           rm -rf ios
           flutter create --platforms=ios .
       
-      # Fetch signing files from App Store Connect
-      - name: Fetch signing files
+      - name: Get dependencies
         script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
+          flutter pub get
       
-      # Set up code signing
       - name: Set up code signing
         script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
           keychain add-certificates
       
-      # Install CocoaPods dependencies
-      - name: Install pods
-        script: |
-          cd ios && pod install
-      
-      # Build the iOS app
       - name: Build iOS
         script: |
           flutter build ios --release --no-codesign
-      
-      # Archive and export IPA
-      - name: Archive and export
-        script: |
-          xcode-project archive-export \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --output "build/ios/ipa"
     artifacts:
       - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
-    # Publishing section removed since you don't want email notifications
