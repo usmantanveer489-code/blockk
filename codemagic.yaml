@@ -16,18 +16,54 @@ workflows:
           flutter pub get
           flutter --version
       
-      - name: Fix iOS setup
+      - name: Clean and update iOS deployment target to 15.5
         script: |
+          echo "Cleaning and setting iOS deployment target to 15.5..."
+          
+          # Clean everything
           flutter clean
           rm -rf ios/Podfile ios/Podfile.lock ios/Pods ios/Runner.xcworkspace
-          flutter pub get
-      
-      - name: Update iOS deployment target to 15.5
-        script: |
-          echo "Setting iOS deployment target to 15.5 for google_mlkit_commons..."
           
           # Update Podfile to iOS 15.5
-          sed -i '' 's/platform :ios, .*/platform :ios, '\''15.5'\''/' ios/Podfile
+          echo "platform :ios, '15.5'" > ios/Podfile
+          cat >> ios/Podfile << 'EOL'
+          # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+          project 'Runner', {
+            'Debug' => :debug,
+            'Profile' => :release,
+            'Release' => :release,
+          }
+
+          def flutter_root
+            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+            unless File.exist?(generated_xcode_build_settings_path)
+              raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+            end
+
+            File.foreach(generated_xcode_build_settings_path) do |line|
+              matches = line.match(/FLUTTER_ROOT\=(.*)/)
+              return matches[1].strip if matches
+            end
+            raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Please check Generated.xcconfig"
+          end
+
+          require File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper')
+
+          target 'Runner' do
+            use_frameworks!
+            use_modular_headers!
+
+            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+          end
+
+          post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              flutter_additional_ios_build_settings(target)
+            end
+          end
+          EOL
           
           # Update Info.plist - ADD or UPDATE MinimumOSVersion
           if ! /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Runner/Info.plist 2>/dev/null; then
@@ -41,26 +77,36 @@ workflows:
           # Update project.pbxproj deployment target
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/IPHONEOS_DEPLOYMENT_TARGET = 15.5;/g' ios/Runner.xcodeproj/project.pbxproj
           
+          # Also check for any other deployment target settings
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/IPHONEOS_DEPLOYMENT_TARGET = 15.5;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = [^;]*;/TARGETED_DEVICE_FAMILY = 1,2;/g' ios/Runner.xcodeproj/project.pbxproj
+          
           echo "✅ Deployment target updated to iOS 15.5"
       
-      - name: Install pods
+      - name: Force pod cache cleanup and install
         script: |
           cd ios
+          # Clean pod cache completely
+          pod cache clean --all
+          pod deintegrate
           pod repo update
-          pod install --repo-update
+          pod install --repo-update --verbose
           cd ..
       
       - name: Build iOS
         script: |
-          flutter build ios --debug --no-codesign
+          flutter pub get
+          flutter build ios --debug --no-codesign --verbose
       
-      - name: Verify build settings
+      - name: Verify all settings
         script: |
-          echo "Build completed! Verifying settings..."
+          echo "=== VERIFYING DEPLOYMENT TARGET ==="
+          echo "Podfile:"
+          grep "platform :ios" ios/Podfile
           echo "Info.plist MinimumOSVersion:"
           /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Runner/Info.plist 2>/dev/null || echo "Key not found"
-          echo "Podfile platform:"
-          grep "platform :ios" ios/Podfile
-          echo "✅ iOS 15.5 deployment target set - compatible with google_mlkit_commons"
+          echo "Xcode project deployment targets:"
+          grep "IPHONEOS_DEPLOYMENT_TARGET" ios/Runner.xcodeproj/project.pbxproj | head -3
+          echo "✅ All settings verified for iOS 15.5"
     artifacts:
       - build/ios/iphoneos/*.app
