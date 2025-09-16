@@ -1,0 +1,84 @@
+workflows:
+  ios-workflow:
+    name: iOS Build Workflow
+    environment:
+      groups:
+        # Add environment variables here (e.g., app store connect API keys)
+        - app_store_connect
+      vars:
+        XCODE_WORKSPACE: "Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        BUNDLE_ID: "com.example.blockfoliox" # Update with your actual bundle ID
+      xcode: 15.2
+      cocoapods: default
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: 'develop'
+          include: true
+          source: true
+    scripts:
+      # Set up keychain for code signing
+      - name: Set up keychain
+        script: |
+          keychain initialize
+      
+      # Install Flutter dependencies
+      - name: Install dependencies
+        script: |
+          flutter packages get
+      
+      # Pre-build cleanup to ensure iOS files are properly generated
+      - name: Pre-build cleanup
+        script: |
+          flutter clean
+          rm -rf ios
+          flutter create --platforms=ios .
+      
+      # Fetch signing files from App Store Connect
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      
+      # Set up code signing
+      - name: Set up code signing
+        script: |
+          keychain add-certificates
+      
+      # Install CocoaPods dependencies
+      - name: Install pods
+        script: |
+          cd ios && pod install
+      
+      # Build the iOS app
+      - name: Build iOS
+        script: |
+          flutter build ios --release --no-codesign
+      
+      # Archive and export IPA
+      - name: Archive and export
+        script: |
+          xcode-project archive-export \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --output "build/ios/ipa"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # Update with your email
+        notify:
+          - success
+          - failure
+      slack:
+        channel: '#builds' # Update with your Slack channel
+        notify:
+          - success
+          - failure
