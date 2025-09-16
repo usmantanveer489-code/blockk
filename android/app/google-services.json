@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1091603223547",
+    "firebase_url": "https://blockfoliox-97eaf-default-rtdb.firebaseio.com",
+    "project_id": "blockfoliox-97eaf",
+    "storage_bucket": "blockfoliox-97eaf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1091603223547:android:b9a995f7a4dff0bbedf15e",
+        "android_client_info": {
+          "package_name": "com.example.blockfoliox"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1091603223547-0ei18cl03gdi6si4k1dmvtis4ql2pjmp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.blockfoliox",
+            "certificate_hash": "36fe734dcb794d7226ef3f66ef1d16838c26795b"
+          }
+        },
+        {
+          "client_id": "1091603223547-0r23iou0v1s4fq28l7nm8dhac6i96ep3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5yOID8GYEnsJXnTytrQlGvuoPnW4WKY0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1091603223547-0r23iou0v1s4fq28l7nm8dhac6i96ep3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1091603223547-t79219a3ja75lvqc465p26tejadqhj0o.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.blockfoliox"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
