@@ -1,112 +1,18 @@
-workflows:
-  ios-workflow:
-    name: iOS Build Workflow
-    environment:
-      groups:
-        - app_credentials
-      vars:
-        XCODE_WORKSPACE: "Runner.xcworkspace"
-        XCODE_SCHEME: "Runner"
-        flutter: "3.22.0"
-    instance_type: mac_mini_m2
-    scripts:
-      - name: Set up Flutter
-        script: |
-          flutter precache --ios
-          flutter pub get
-          flutter --version
-      
-      - name: Nuclear cleanup and set iOS 15.5
-        script: |
-          echo "🚀 Nuclear option: Complete iOS regeneration with iOS 15.5..."
-          
-          # Remove and recreate iOS folder
-          rm -rf ios
-          flutter create --ios --org com.yourcompany . --overwrite
-          flutter pub get
-          
-          # FORCE iOS 15.5 in ALL locations
-          echo "Force setting iOS 15.5 in all configuration files..."
-          
-          # 1. Update Podfile
-          sed -i '' 's/platform :ios, .*/platform :ios, '\''15.5'\''/' ios/Podfile
-          
-          # 2. Update Info.plist - Ensure MinimumOSVersion exists
-          /usr/libexec/PlistBuddy -c "Delete :MinimumOSVersion" ios/Runner/Info.plist 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string 15.5" ios/Runner/Info.plist
-          
-          # 3. Update project.pbxproj - ALL deployment targets
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/IPHONEOS_DEPLOYMENT_TARGET = 15.5;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = 1.0;/g' ios/Runner.xcodeproj/project.pbxproj
-          
-          # 4. Update all xcconfig files if they exist
-          find ios -name "*.xcconfig" -exec sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET[[:space:]]*=[[:space:]]*.*/IPHONEOS_DEPLOYMENT_TARGET = 15.5/' {} \; 2>/dev/null || true
-          
-          # 5. Create a fresh Podfile with explicit iOS 15.5 if needed
-          cat > ios/Podfile << 'EOL'
-          platform :ios, '15.5'
-          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
-
-          project 'Runner', {
-            'Debug' => :debug,
-            'Profile' => :release,
-            'Release' => :release,
-          }
-
-          def flutter_root
-            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-            unless File.exist?(generated_xcode_build_settings_path)
-              raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
-            end
-
-            File.foreach(generated_xcode_build_settings_path) do |line|
-              matches = line.match(/FLUTTER_ROOT\=(.*)/)
-              return matches[1].strip if matches
-            end
-            raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Please check Generated.xcconfig"
-          end
-
-          require File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper')
-
-          target 'Runner' do
-            use_frameworks!
-            use_modular_headers!
-            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-          end
-
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              flutter_additional_ios_build_settings(target)
-            end
-          end
-          EOL
-          
-          echo "✅ iOS 15.5 forced in ALL configuration files"
-      
-      - name: Verify iOS 15.5 settings
-        script: |
-          echo "=== VERIFYING iOS 15.5 SETTINGS ==="
-          echo "Podfile platform:"
-          grep "platform :ios" ios/Podfile
-          echo "Info.plist MinimumOSVersion:"
-          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Runner/Info.plist
-          echo "Xcode project deployment targets:"
-          grep "IPHONEOS_DEPLOYMENT_TARGET" ios/Runner.xcodeproj/project.pbxproj
-          echo "✅ All settings verified for iOS 15.5"
-      
-      - name: Install pods with aggressive cleanup
-        script: |
-          cd ios
-          # Complete pod cleanup
-          pod cache clean --all
-          pod deintegrate
-          rm -rf Pods Podfile.lock
-          pod repo update
-          pod install --repo-update --verbose
-          cd ..
-      
-      - name: Build iOS
-        script: |
-          flutter build ios --debug --no-codesign --verbose
-    artifacts:
-      - build/ios/iphoneos/*.app
+ios-workflow:
+  name: iOS Build Workflow
+  instance_type: mac_mini_m2
+  scripts:
+    - name: Setup Flutter
+      script: |
+        flutter --version
+        flutter pub get
+        
+    - name: Install iOS dependencies
+      script: |
+        cd ios
+        pod install --repo-update
+        cd ..
+        
+    - name: Build iOS
+      script: |
+        flutter build ios --debug --no-codesign
