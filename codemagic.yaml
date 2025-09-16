@@ -22,26 +22,26 @@ workflows:
           rm -rf ios/Podfile ios/Podfile.lock ios/Pods ios/Runner.xcworkspace
           flutter pub get
       
-      - name: Update iOS deployment target to 15.0
+      - name: Update iOS deployment target to 15.5
         script: |
-          echo "Setting iOS deployment target to 15.0 for maximum compatibility..."
+          echo "Setting iOS deployment target to 15.5 for google_mlkit_commons..."
           
-          # Update Podfile to iOS 15.0
-          sed -i '' 's/platform :ios, .*/platform :ios, '\''15.0'\''/' ios/Podfile
+          # Update Podfile to iOS 15.5
+          sed -i '' 's/platform :ios, .*/platform :ios, '\''15.5'\''/' ios/Podfile
           
           # Update Info.plist - ADD or UPDATE MinimumOSVersion
           if ! /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Runner/Info.plist 2>/dev/null; then
               echo "Adding MinimumOSVersion key to Info.plist..."
-              /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string 15.0" ios/Runner/Info.plist
+              /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string 15.5" ios/Runner/Info.plist
           else
               echo "Updating existing MinimumOSVersion key..."
-              /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 15.0" ios/Runner/Info.plist
+              /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 15.5" ios/Runner/Info.plist
           fi
           
           # Update project.pbxproj deployment target
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/IPHONEOS_DEPLOYMENT_TARGET = 15.5;/g' ios/Runner.xcodeproj/project.pbxproj
           
-          echo "✅ Deployment target updated to iOS 15.0"
+          echo "✅ Deployment target updated to iOS 15.5"
       
       - name: Install pods
         script: |
@@ -58,9 +58,9 @@ workflows:
         script: |
           echo "Build completed! Verifying settings..."
           echo "Info.plist MinimumOSVersion:"
-          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Runner/Info.plist 2>/dev/null || echo "Key not found (but that's okay for build)"
+          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Runner/Info.plist 2>/dev/null || echo "Key not found"
           echo "Podfile platform:"
           grep "platform :ios" ios/Podfile
-          echo "✅ iOS 15.0 deployment target set successfully"
+          echo "✅ iOS 15.5 deployment target set - compatible with google_mlkit_commons"
     artifacts:
       - build/ios/iphoneos/*.app
