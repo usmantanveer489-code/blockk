@@ -1,18 +1,18 @@
-ios-workflow:
-  name: iOS Build Workflow
-  instance_type: mac_mini_m2
-  scripts:
-    - name: Setup Flutter
-      script: |
-        flutter --version
-        flutter pub get
-        
-    - name: Install iOS dependencies
-      script: |
-        cd ios
-        pod install --repo-update
-        cd ..
-        
-    - name: Build iOS
-      script: |
-        flutter build ios --debug --no-codesign
+name: blockfoliox-ios-build
+description: "iOS build pipeline for BlockFolioX"
+
+workflows:
+  ios-build:
+    name: iOS Build
+    instance_type: mac_mini_m2
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
+          cd ios && pod install && cd ..
+      
+      - name: Build iOS app
+        script: |
+          flutter build ios --debug --no-codesign
+    artifacts:
+      - build/ios/iphoneos/
